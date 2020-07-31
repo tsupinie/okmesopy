@@ -3,7 +3,7 @@ import numpy as np
 
 import pandas as pd
 
-import pint
+#import pint
 
 from io import StringIO
 import warnings
