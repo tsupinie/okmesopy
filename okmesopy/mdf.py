@@ -129,14 +129,22 @@ class MTS(MesonetTextFile):
         for key, key_rain in rain_copies.items():
             rain_copies[key] = pd.concat(key_rain)
 
-        new_df = pd.concat(dfs, join=join, keys=keys)
-        new_df['RAIN'] = pd.concat(rain_copies, keys=keys)
+        unique_keys = list(set(keys))
+
+        new_df = pd.concat(dfs, join=join, keys=unique_keys)
+        new_df['RAIN'] = pd.concat(rain_copies, keys=unique_keys)
+
+        new_df.index.set_names(['STID', 'TIME'], inplace=True)
+        new_df = new_df.swaplevel().sort_index(level=0)
+
+        if len(unique_keys) == 1:
+            new_df.set_index(new_df.index.droplevel(level=1), inplace=True)
 
         with warnings.catch_warnings():
             warnings.simplefilter('ignore', category=UserWarning)
             new_df.meta = dfs[0].meta
 
-        return new_df.swaplevel().sort_index(level=0)
+        return new_df
 
 
 class MDF(MesonetTextFile):
@@ -168,6 +176,7 @@ class MDF(MesonetTextFile):
         with warnings.catch_warnings():
             warnings.simplefilter('ignore', category=UserWarning)
             new_df.meta = dfs[0].meta
+        new_df.index.set_names(['TIME', 'STID'], inplace=True)
 
         return new_df
 
