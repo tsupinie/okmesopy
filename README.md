@@ -4,7 +4,12 @@ Readers for Oklahoma Mesonet data and time series files
 okmesopy provides a thin-ish wrapper around a Pandas data frame. There is an included `concat()` function that is also a thin-ish wrapper around the pandas 
 `concat()` function. The okmesopy `concat()` handles properly pasting data files together, including accumulating rainfall for MTS files.
 
-## Dpendencies
+## Installation
+```
+$ python setup.py install
+```
+
+## Dependencies
 * Pandas
 
 ## Usage
