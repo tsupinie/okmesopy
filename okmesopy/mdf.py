@@ -178,22 +178,3 @@ def concat(dfs, join='outer'):
         raise ValueError("Can't handle mixed MTS and MDF files in concatenation")
 
     return type(dfs[0])._concat(dfs, join=join)
-
-
-if __name__ == "__main__":
-    import matplotlib as mpl
-    import matplotlib.pyplot as plt
-
-#   mts = MTS.from_file('/Users/tsupinie/Downloads/20191010nwcm.mts')
-#   mts = concat([MTS.from_web(datetime(2019, 5, dt), 'NWCM') for dt in range(20, 27)])
-
-#   dt = datetime(2020, 7, 30)
-#   mts = concat([MTS.from_web(dt, 'nrmn'), MTS.from_web(dt - timedelta(days=1), 'okce')])
-#   print(mts)
-
-#   dt = datetime(2020, 7, 31, 12)
-#   mdf = concat([MDF.from_web(dt), MDF.from_web(dt + timedelta(minutes=5))])
-#   print(mdf)
-
-#   mts['RAIN'].plot()
-#   plt.show()
