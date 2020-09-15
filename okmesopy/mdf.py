@@ -29,9 +29,9 @@ class MesonetTextFile(pd.DataFrame):
     }
 
     @classmethod
-    def from_file_obj(cls, fobj):
+    def from_file_obj(cls, fobj, infer_rows=288):
         txt = fobj.read().decode('utf-8')
-        df = pd.read_fwf(StringIO(txt), infer_nrows=288, skiprows=2)
+        df = pd.read_fwf(StringIO(txt), infer_nrows=infer_rows, skiprows=2)
 
         _units = MesonetTextFile._units
         unit_cols = list(set(list(df)) & set(list(_units.keys())))
@@ -82,8 +82,9 @@ class MesonetTextFile(pd.DataFrame):
 class MTS(MesonetTextFile):
 
     @classmethod
-    def from_file_obj(cls, fobj):
-        mts = super(MTS, cls).from_file_obj(fobj)
+    def from_file_obj(cls, fobj, mts1m=False):
+        infer_rows = 1440 if mts1m else 288
+        mts = super(MTS, cls).from_file_obj(fobj, infer_rows=infer_rows)
 
         mts.meta['RAIN_prev_day'] = mts.loc[0, 'RAIN']
         mts.loc[0, 'RAIN'] = 0.
@@ -110,7 +111,7 @@ class MTS(MesonetTextFile):
         url = f"{_url_base}/{subpath}/{date:%Y/%m/%d/%Y%m%d}{stid.lower()}.mts"
 
         urlobj = urlopen(url)
-        return cls.from_file_obj(urlobj)
+        return cls.from_file_obj(urlobj, mts1m=mts1m)
 
     @classmethod
     def _concat(cls, dfs, join='outer'):
