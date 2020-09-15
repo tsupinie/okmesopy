@@ -86,13 +86,12 @@ class MTS(MesonetTextFile):
         infer_rows = 1440 if mts1m else 288
         mts = super(MTS, cls).from_file_obj(fobj, infer_rows=infer_rows)
 
-        mts.meta['RAIN_prev_day'] = mts.loc[0, 'RAIN']
+        mts.meta['STID'] = mts['STID'][0]
+        mts.meta['STNM'] = mts['STNM'][0]
+        mts.meta['RAIN_prev_day'] = {mts.meta['STID']: mts.loc[0, 'RAIN']}
         mts.loc[0, 'RAIN'] = 0.
 
         mts.set_index('TIME', inplace=True)
-
-        mts.meta['STID'] = mts['STID'][0]
-        mts.meta['STNM'] = mts['STNM'][0]
 
         del mts['STID']
         del mts['STNM']
@@ -117,22 +116,33 @@ class MTS(MesonetTextFile):
     def _concat(cls, dfs, join='outer'):
         keys = [df.meta['STID'] for df in dfs]
 
+        rain_prev = {}
         rain_prev_accum = defaultdict(int)
         rain_copies = defaultdict(list)
 
         for key, df in zip(keys, dfs):
+            rain_prev_accum[key] += df.meta['RAIN_prev_day'][key]
+
             df_rain_copy = df['RAIN'].copy()
             df_rain_copy += rain_prev_accum[key]
 
             rain_copies[key].append(df_rain_copy)
-            rain_prev_accum[key] += df.meta['RAIN_prev_day']
+            if key not in rain_prev:
+                rain_prev[key] = df.meta['RAIN_prev_day'][key]
 
         for key, key_rain in rain_copies.items():
-            rain_copies[key] = pd.concat(key_rain)
+            rain_copies[key] = pd.concat(key_rain) - rain_prev[key]
 
         unique_keys = list(set(keys))
 
-        new_df = pd.concat(dfs, join=join, keys=unique_keys)
+        dfs_keys = defaultdict(list)
+        for key, df in zip(keys, dfs):
+            dfs_keys[key].append(df)
+
+        for key, key_df in dfs_keys.items():
+            dfs_keys[key] = pd.concat(key_df, join=join)
+
+        new_df = pd.concat(dfs_keys, join=join, keys=unique_keys)
         new_df['RAIN'] = pd.concat(rain_copies, keys=unique_keys)
 
         new_df.index.set_names(['STID', 'TIME'], inplace=True)
@@ -141,9 +151,13 @@ class MTS(MesonetTextFile):
         if len(unique_keys) == 1:
             new_df.set_index(new_df.index.droplevel(level=1), inplace=True)
 
+        new_df = cls(new_df)
+
         with warnings.catch_warnings():
             warnings.simplefilter('ignore', category=UserWarning)
-            new_df.meta = dfs[0].meta
+            new_df.meta = {'RAIN_prev_day': rain_prev}
+            if len(unique_keys) == 1:
+                new_df.meta['STID'] = unique_keys[0]
 
         return new_df
 
@@ -176,10 +190,10 @@ class MDF(MesonetTextFile):
 
         with warnings.catch_warnings():
             warnings.simplefilter('ignore', category=UserWarning)
-            new_df.meta = dfs[0].meta
+            new_df.meta = {}
         new_df.index.set_names(['TIME', 'STID'], inplace=True)
 
-        return new_df
+        return cls(new_df)
 
 
 def concat(dfs, join='outer'):
