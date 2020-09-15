@@ -65,9 +65,17 @@ class MesonetTextFile(pd.DataFrame):
     def append(self, other, **kwargs):
         return concat([self, other], **kwargs)
 
+    def __getitem__(self, *args):
+        ret = super(MesonetTextFile, self).__getitem__(*args)
 
+        if type(ret) == pd.DataFrame:
+            ret = type(self)(ret)
 
+            with warnings.catch_warnings():
+                warnings.simplefilter('ignore', category=UserWarning)
+                ret.meta = self.meta
 
+        return ret
 
 
 class MTS(MesonetTextFile):
