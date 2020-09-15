@@ -63,20 +63,11 @@ class MesonetTextFile(pd.DataFrame):
         return mdf
 
     def append(self, other, **kwargs):
-        if 'sort' not in kwargs:
-            kwargs['sort'] = False
+        return concat([self, other], **kwargs)
 
-        other_rain = other['RAIN'].copy()
-        other_rain += other.meta['RAIN_prev_day']
 
-        new_df = super(MesonetTextFile, self).append(other, **kwargs)
-        new_df['RAIN'] = self['RAIN'].append(other_rain)
 
-        with warnings.catch_warnings():
-            warnings.simplefilter('ignore', category=UserWarning)
-            new_df.meta = self.meta
 
-        return new_df
 
 
 class MTS(MesonetTextFile):
