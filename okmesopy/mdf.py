@@ -14,6 +14,17 @@ from collections import defaultdict
 
 _url_base = "http://www.mesonet.org/data/public/"
 
+
+import numpy as np
+
+def _matric_potential(dtref):
+    return -2083 / (1 + np.exp(-3.35 * (dtref - 3.17)))
+
+def _vol_water_content(dtref, wcr, wcs, alpha, n):
+    mp = _matric_potential(dtref)
+    return wcr + (wcs - wcr) / (1 + (-alpha * mp) ** n) ** (1 - 1 / n)
+
+
 class MesonetTextFile(pd.DataFrame):
     _units = {
         'RELH': 'percent',
@@ -159,6 +170,23 @@ class MTS(MesonetTextFile):
                 new_df.meta['STID'] = unique_keys[0]
 
         return new_df
+    
+    def compute_soil_vwc(self, geoinfo):
+        stn_meta = geoinfo[geoinfo.index == self.meta['STID']]
+        depths = [int(col[3:]) for col in geoinfo.columns if col.startswith('WCR')]
+
+        def vwc_at_depth(depth):
+            try:
+                vwc = _vol_water_content(self[f'TR{depth:02d}'], stn_meta[f'WCR{depth:02d}'].values, stn_meta[f'WCS{depth:02d}'].values, 
+                                         stn_meta[f'A{depth:02d}'].values, stn_meta[f'N{depth:02d}'].values)
+            except KeyError:
+                vwc = None
+            return vwc
+
+        vwcs = [ vwc_at_depth(depth) for depth in depths ]
+        vwcs = {f'VWC{depth:02d}': vwc for depth, vwc in zip(depths, vwcs) if vwc is not None}
+
+        return pd.DataFrame(vwcs)        
 
 
 class MDF(MesonetTextFile):
@@ -193,6 +221,23 @@ class MDF(MesonetTextFile):
         new_df.index.set_names(['TIME', 'STID'], inplace=True)
 
         return cls(new_df)
+
+    def compute_soil_vwc(self, geoinfo):
+        depths = [int(col[3:]) for col in geoinfo.columns if col.startswith('WCR')]
+        geoinfo = geoinfo.drop(geoinfo[~geoinfo.index.isin(self.index)].index)
+
+        def vwc_at_depth(depth):
+            try:
+                vwc = _vol_water_content(self[f'TR{depth:02d}'], geoinfo[f'WCR{depth:02d}'], geoinfo[f'WCS{depth:02d}'], 
+                                         geoinfo[f'A{depth:02d}'], geoinfo[f'N{depth:02d}'])
+            except KeyError:
+                vwc = None
+            return vwc
+
+        vwcs = [ vwc_at_depth(depth) for depth in depths ]
+        vwcs = {f'VWC{depth:02d}': vwc for depth, vwc in zip(depths, vwcs) if vwc is not None}
+
+        return pd.DataFrame(vwcs)
 
 
 def concat(dfs, join='outer'):
