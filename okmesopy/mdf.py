@@ -3,7 +3,8 @@ import numpy as np
 
 import pandas as pd
 
-#import pint
+import pint_pandas
+from metpy.units import units
 
 from io import StringIO
 import warnings
@@ -18,25 +19,38 @@ _url_base = "http://www.mesonet.org/data/public/"
 import numpy as np
 
 def _matric_potential(dtref):
-    return -2083 / (1 + np.exp(-3.35 * (dtref - 3.17)))
+    return -2083 / (1 + np.exp(-3.35 * (dtref.pint.to('delta_degC').pint.m - 3.17)))
 
 def _vol_water_content(dtref, wcr, wcs, alpha, n):
     mp = _matric_potential(dtref)
     return wcr + (wcs - wcr) / (1 + (-alpha * mp) ** n) ** (1 - 1 / n)
 
+pint_pandas.PintType.ureg = units
 
 class MesonetTextFile(pd.DataFrame):
     _units = {
         'RELH': 'percent',
-        'TAIR': 'deg_C',
+        'TAIR': 'degC',
         'WSPD': 'm/s',
-        'WDIR': 'degrees',
+        'WVEC': 'm/s',
+        'WDIR': 'deg',
+        'WDSD': 'deg',
+        'WSSD': 'm/s',
+        'WMAX': 'm/s',
         'RAIN': 'mm',
         'PRES': 'hPa',
         'SRAD': 'W/m^2',
-        'TA9M': 'deg_C',
+        'TA9M': 'degC',
         'WS2M': 'm/s',
-        'SKIN': 'deg_C',
+        'SKIN': 'degC',
+        'TS10': 'degC',
+        'TB10': 'degC',
+        'TS05': 'degC',
+        'TS25': 'degC',
+        'TS60': 'degC',
+        'TR05': 'delta_degC',
+        'TR25': 'delta_degC',
+        'TR60': 'delta_degC',
     }
 
     @classmethod
@@ -46,11 +60,12 @@ class MesonetTextFile(pd.DataFrame):
 
         _units = MesonetTextFile._units
         unit_cols = list(set(list(df)) & set(list(_units.keys())))
-#       df = df.astype({var: f'pint[{_units[var]}]' for var in unit_cols})
 
         for col in df:
             if col not in ['STID', 'STNM']:
                 df.loc[df[col] < -900, col] = float('nan')
+
+        df = df.astype({var: f'pint[{_units[var]}]' for var in unit_cols})
         
         dt_line = txt.split("\n")[1]
         dt_base = datetime.strptime(dt_line[5:], "%Y %m %d %H %M %S")
@@ -246,3 +261,11 @@ def concat(dfs, join='outer'):
         raise ValueError("Can't handle mixed MTS and MDF files in concatenation")
 
     return type(dfs[0])._concat(dfs, join=join)
+
+if __name__ == "__main__":
+    from geoinfo import OKMesoGeoInfo
+    mdf = MDF.from_web(datetime(2022, 7, 14, 0, 0))
+    meta = OKMesoGeoInfo.from_web()
+    print(mdf.compute_soil_vwc(meta))
+    print(mdf['TR05'])
+    #print(mdf.columns)

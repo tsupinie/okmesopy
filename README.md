@@ -1,8 +1,9 @@
 # okmesopy
 Readers for Oklahoma Mesonet data and time series files
 
-okmesopy provides a thin-ish wrapper around a Pandas data frame. There is an included `concat()` function that is also a thin-ish wrapper around the pandas 
-`concat()` function. The okmesopy `concat()` handles properly pasting data files together, including accumulating rainfall for MTS files.
+okmesopy provides a thin-ish wrapper around a Pandas data frame. There is an included `concat()` function that is also a thin-ish wrapper around the pandas `concat()` function. The okmesopy `concat()` handles properly pasting data files together, including accumulating rainfall for MTS files.
+
+Additionally, okmesopy uses pint-pandas to provide a units-aware data frame, and the correct units for each variable are included by default. See the pint-pandas documentation for more info. The units registry is the one used in MetPy, so you can pass quantities directly to MetPy.
 
 ## Installation
 ```
@@ -11,14 +12,21 @@ $ python setup.py install
 
 ## Dependencies
 * Pandas
+* pint-pandas
+* MetPy
 
 ## Usage
 ```python
 >>> from okmesopy import MDF, MTS, concat
 >>> from datetime import datetime, timedelta
+>>> from metpy import dewpoint_from_relative_humidity
 >>>
 >>> mdf1 = MDF.from_file("/path/to/data/202007120200.mdf") # Load an MDF from a local file
 >>> mdf2 = MDF.from_web(datetime(2020, 7, 12, 2, 5)) # Load an MDF file from the web
+>>> mdf1['TAIR'].loc['NRMN'].to('degF') # Convert units in the file
+<Quantity(91.94, 'degree_Fahrenheit')>
+>>> dewpoint_from_relative_humidity(mdf['TAIR'].loc['NRMN'], mdf['RELH'].loc['NRMN']) # Pass quantities directly to MetPy calculation functions
+<Quantity(23.6395585, 'degree_Celsius')>
 >>> concat([mdf1, mdf2]) # Concatenate the two data files
                           STNM  RELH  TAIR  WSPD  WVEC   WDIR  WDSD  WSSD  WMAX   RAIN    PRES  SRAD  TA9M  WS2M  TS10  TB10  TS05  TS25  TS60  TR05  TR25  TR60
                     STID                                                                                                                                        
