@@ -5,6 +5,8 @@ okmesopy provides a thin-ish wrapper around a Pandas data frame. There is an inc
 
 Additionally, okmesopy uses pint-pandas to provide a units-aware data frame, and the correct units for each variable are included by default. See the pint-pandas documentation for more info. The units registry is the one used in MetPy, so you can pass quantities directly to MetPy.
 
+There is no paywall for downloading the data. However, if you're going to use it, and you live outside the US state of Oklahoma, the Oklahoma Mesonet does charge a fee to help cover their operating costs. See [here](https://mesonet.org/about/data-access-and-pricing) for more details.
+
 ## Installation
 ```
 $ python setup.py install
