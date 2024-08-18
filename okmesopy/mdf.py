@@ -20,9 +20,6 @@ from geoinfo import OKMesoGeoInfo
 
 _url_base = "http://www.mesonet.org/data/public/"
 
-
-import numpy as np
-
 def _matric_potential(dtref):
     return (-2083 / (1 + np.exp(-3.35 * (dtref.pint.to('delta_degC').pint.m - 3.17)))).astype('pint[kPa]')
 
