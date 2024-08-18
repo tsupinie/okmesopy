@@ -12,7 +12,7 @@ class OKMesoGeoInfo(pd.DataFrame):
         df = pd.read_csv(StringIO(txt))
         df.set_index('stid', inplace=True)
 
-        soil_params = ['WCR%02d', 'WCS%02d', 'A%02d', 'N%02d', 'BULK%d', 'GRAV%d', 'SAND%c', 'SILT%d', 'CLAY%d']
+        soil_params = ['WCR%02d', 'WCS%02d', 'A%02d', 'N%02d', 'BULK%d', 'GRAV%d', 'SAND%d', 'SILT%d', 'CLAY%d']
         depths = [5, 10, 25, 60, 75]
 
         for depth in depths:
