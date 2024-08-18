@@ -3,6 +3,10 @@ import pandas as pd
 
 from io import StringIO
 from urllib.request import urlopen
+from datetime import datetime
+from zoneinfo import ZoneInfo
+
+tz_utc = ZoneInfo('utc')
 
 class OKMesoGeoInfo(pd.DataFrame):
     
@@ -20,6 +24,10 @@ class OKMesoGeoInfo(pd.DataFrame):
                 col = param % depth
                 if col in df.columns:
                     df.loc[df[col] < -900, col] = float('nan')
+        
+        df['datc'] = pd.to_datetime(df['datc'], format='%Y%m%d', utc=True)
+        df['datd'] = pd.to_datetime(df['datd'], format='%Y%m%d', utc=True)
+        df.loc[df['datd'] > datetime.now(tz=tz_utc), 'datd'] = float('nan')
         return df
 
     @classmethod
