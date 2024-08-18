@@ -1,4 +1,6 @@
 
+from __future__ import annotations
+
 import numpy as np
 
 import pandas as pd
@@ -11,6 +13,9 @@ import warnings
 from urllib.request import urlopen
 from datetime import datetime, timedelta
 from collections import defaultdict
+from typing import TextIO
+
+from geoinfo import OKMesoGeoInfo
 
 
 _url_base = "http://www.mesonet.org/data/public/"
@@ -54,7 +59,7 @@ class MesonetTextFile(pd.DataFrame):
     }
 
     @classmethod
-    def from_file_obj(cls, fobj, infer_rows=288):
+    def from_file_obj(cls, fobj: TextIO, infer_rows=288):
         txt = fobj.read().decode('utf-8')
         df = pd.read_fwf(StringIO(txt), infer_nrows=infer_rows, skiprows=2)
 
@@ -81,14 +86,14 @@ class MesonetTextFile(pd.DataFrame):
         return meso_file
 
     @classmethod
-    def from_file(cls, fname):
+    def from_file(cls, fname: str):
         # Warn if it looks like the user has the extension wrong.
         with open(fname, 'rb') as fobj:
             mdf = cls.from_file_obj(fobj)
 
         return mdf
 
-    def append(self, other, **kwargs):
+    def append(self, other: MesonetTextFile, **kwargs):
         return concat([self, other], **kwargs)
 
     def __getitem__(self, *args):
@@ -107,7 +112,7 @@ class MesonetTextFile(pd.DataFrame):
 class MTS(MesonetTextFile):
 
     @classmethod
-    def from_file_obj(cls, fobj, mts1m=False):
+    def from_file_obj(cls, fobj: TextIO, mts1m=False):
         infer_rows = 1440 if mts1m else 288
         mts = super(MTS, cls).from_file_obj(fobj, infer_rows=infer_rows)
 
@@ -124,7 +129,7 @@ class MTS(MesonetTextFile):
         return mts
 
     @classmethod
-    def from_web(cls, date, stid, mts1m=False):
+    def from_web(cls, date: datetime, stid: str, mts1m=False):
         if stid.lower() in ['nwcm', 'osub']:
             subpath = 'nwc/mts-1m' if mts1m else 'nwc/mts-5m'
         else:
@@ -138,7 +143,7 @@ class MTS(MesonetTextFile):
         return cls.from_file_obj(urlobj, mts1m=mts1m)
 
     @classmethod
-    def _concat(cls, dfs, join='outer'):
+    def _concat(cls, dfs: list[pd.DataFrame], join='outer'):
         keys = [df.meta['STID'] for df in dfs]
 
         rain_prev = {}
@@ -186,7 +191,7 @@ class MTS(MesonetTextFile):
 
         return new_df
     
-    def compute_soil_vwc(self, geoinfo):
+    def compute_soil_vwc(self, geoinfo: OKMesoGeoInfo):
         stn_meta = geoinfo[geoinfo.index == self.meta['STID']]
         depths = [int(col[3:]) for col in geoinfo.columns if col.startswith('WCR')]
 
@@ -207,7 +212,7 @@ class MTS(MesonetTextFile):
 class MDF(MesonetTextFile):
 
     @classmethod
-    def from_file_obj(cls, fobj):
+    def from_file_obj(cls, fobj: TextIO):
         mdf = super(MDF, cls).from_file_obj(fobj)
 
         mdf.set_index('STID', inplace=True)
@@ -218,14 +223,14 @@ class MDF(MesonetTextFile):
         return mdf
 
     @classmethod
-    def from_web(cls, date):
+    def from_web(cls, date: datetime):
         url = f"{_url_base}/mesonet/mdf/{date:%Y/%m/%d/%Y%m%d%H%M}.mdf"
 
         urlobj = urlopen(url)
         return cls.from_file_obj(urlobj)
 
     @classmethod
-    def _concat(cls, dfs, join='outer'):
+    def _concat(cls, dfs: list[pd.DataFrame], join='outer'):
         keys = [df.meta['TIME'] for df in dfs]
 
         new_df = pd.concat(dfs, join=join, keys=keys)
@@ -237,7 +242,7 @@ class MDF(MesonetTextFile):
 
         return cls(new_df)
 
-    def compute_soil_vwc(self, geoinfo):
+    def compute_soil_vwc(self, geoinfo: OKMesoGeoInfo):
         depths = [int(col[3:]) for col in geoinfo.columns if col.startswith('WCR')]
         geoinfo = geoinfo.drop(geoinfo[~geoinfo.index.isin(self.index)].index)
 
@@ -255,7 +260,7 @@ class MDF(MesonetTextFile):
         return pd.DataFrame(vwcs)
 
 
-def concat(dfs, join='outer'):
+def concat(dfs: list[pd.DataFrame], join='outer'):
     unique_types = list(set(type(df).__name__ for df in dfs))
     if len(unique_types) > 1:
         raise ValueError("Can't handle mixed MTS and MDF files in concatenation")
@@ -263,7 +268,6 @@ def concat(dfs, join='outer'):
     return type(dfs[0])._concat(dfs, join=join)
 
 if __name__ == "__main__":
-    from geoinfo import OKMesoGeoInfo
     mdf = MDF.from_web(datetime(2022, 7, 14, 0, 0))
     meta = OKMesoGeoInfo.from_web()
     print(mdf.compute_soil_vwc(meta))

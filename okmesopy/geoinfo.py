@@ -10,6 +10,8 @@ from io import StringIO
 from urllib.request import urlopen
 from datetime import datetime
 from zoneinfo import ZoneInfo
+from pathlib import Path
+from typing import Union, TextIO
 
 pint_pandas.PintType.ureg = units
 
@@ -64,7 +66,7 @@ class OKMesoGeoInfo(pd.DataFrame):
     }
     
     @classmethod
-    def from_file_obj(cls, fobj):
+    def from_file_obj(cls, fobj: TextIO):
         txt = fobj.read().decode('utf-8')
         df = pd.read_csv(StringIO(txt), dtype={'elev': np.float64})
         df.set_index('stid', inplace=True)
@@ -94,7 +96,7 @@ class OKMesoGeoInfo(pd.DataFrame):
         return df
 
     @classmethod
-    def from_file(cls, fname):
+    def from_file(cls, fname: Union[str, Path]):
         with open(fname) as fobj:
             geo = cls.from_file_obj(fobj)
         return geo
