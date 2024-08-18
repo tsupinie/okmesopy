@@ -3,7 +3,7 @@ from setuptools import setup
 
 setup(
     name = 'okmesopy',
-    version = 'v0.1',
+    version = 'v0.2',
     author = 'Tim Supinie',
     author_email = 'tsupinie@gmail.com',
     description = 'Oklahoma Mesonet data and timeseries readers',
