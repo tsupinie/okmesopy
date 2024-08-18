@@ -24,6 +24,11 @@ class OKMesoGeoInfo(pd.DataFrame):
                 col = param % depth
                 if col in df.columns:
                     df.loc[df[col] < -900, col] = float('nan')
+
+        for depth in depths:
+            col = 'TEXT%d' % depth
+            if col in df.columns:
+                df.loc[df[col] == '-999', col] = ''
         
         df['datc'] = pd.to_datetime(df['datc'], format='%Y%m%d', utc=True)
         df['datd'] = pd.to_datetime(df['datd'], format='%Y%m%d', utc=True)
