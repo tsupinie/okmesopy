@@ -19,11 +19,11 @@ _url_base = "http://www.mesonet.org/data/public/"
 import numpy as np
 
 def _matric_potential(dtref):
-    return -2083 / (1 + np.exp(-3.35 * (dtref.pint.to('delta_degC').pint.m - 3.17)))
+    return (-2083 / (1 + np.exp(-3.35 * (dtref.pint.to('delta_degC').pint.m - 3.17)))).astype('pint[kPa]')
 
 def _vol_water_content(dtref, wcr, wcs, alpha, n):
     mp = _matric_potential(dtref)
-    return wcr + (wcs - wcr) / (1 + (-alpha * mp) ** n) ** (1 - 1 / n)
+    return wcr + (wcs - wcr) / (1 + (-1 * (alpha * mp)) ** n) ** (1 - 1 / n)
 
 pint_pandas.PintType.ureg = units
 
